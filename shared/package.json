@@ -1,0 +1,17 @@
+{
+  "name": "@supportflow-ai/shared",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./lib/index.js",
+  "types": "./lib/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "dependencies": {
+    "firebase": "^12.6.0"
+  },
+  "devDependencies": {
+    "typescript": "^5"
+  }
+}
