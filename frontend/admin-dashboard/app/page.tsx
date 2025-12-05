@@ -7,12 +7,13 @@ import { RecentActivity } from "@/components/dashboard/recent-activity"
 import { QuickStats } from "@/components/dashboard/quick-stats"
 import { CreateTicketModal } from "@/components/modals/create-ticket-modal"
 import { Inbox, UserCheck, Clock, TrendingUp } from "lucide-react"
+import { ProtectedRoute } from "@/components/auth/protected-route"
 
 export default function DashboardPage() {
   const [isNewTicketOpen, setIsNewTicketOpen] = useState(false)
 
   return (
-    <>
+    <ProtectedRoute>
       <DashboardLayout onNewTicket={() => setIsNewTicketOpen(true)}>
         <div className="space-y-8">
           {/* Page Header */}
@@ -65,6 +66,6 @@ export default function DashboardPage() {
       </DashboardLayout>
 
       <CreateTicketModal open={isNewTicketOpen} onOpenChange={setIsNewTicketOpen} />
-    </>
+    </ProtectedRoute>
   )
 }

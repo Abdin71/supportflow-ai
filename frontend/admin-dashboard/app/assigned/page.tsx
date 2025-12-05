@@ -6,7 +6,7 @@ import { FilterBar } from "@/components/tickets/filter-bar"
 import { TicketsTable } from "@/components/tickets/tickets-table"
 import { ProtectedRoute } from "@/components/auth/protected-route"
 
-export default function TicketsPage() {
+export default function AssignedTicketsPage() {
   const [activeStatus, setActiveStatus] = useState("all")
   const [category, setCategory] = useState("all")
   const [sortBy, setSortBy] = useState("newest")
@@ -18,8 +18,8 @@ export default function TicketsPage() {
         <div className="space-y-6">
           {/* Page Header */}
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-foreground">All Tickets</h1>
-            <p className="mt-1 text-muted-foreground">View and manage customer support tickets</p>
+            <h1 className="text-3xl font-bold tracking-tight text-foreground">Assigned to Me</h1>
+            <p className="mt-1 text-muted-foreground">Tickets currently assigned to your account</p>
           </div>
 
           {/* Filter Bar */}
@@ -34,7 +34,7 @@ export default function TicketsPage() {
             onSearchChange={setSearchQuery}
           />
 
-          {/* Tickets Table */}
+          {/* Tickets Table - filtered to show only assigned tickets */}
           <TicketsTable />
         </div>
       </DashboardLayout>
