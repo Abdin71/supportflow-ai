@@ -3,7 +3,13 @@ import { TicketDetail } from "@/components/ticket-detail"
 import { ArrowLeft } from 'lucide-react'
 import Link from "next/link"
 
-export default function TicketDetailPage({ params }: { params: { id: string } }) {
+export default async function TicketDetailPage({ 
+  params 
+}: { 
+  params: Promise<{ id: string }> 
+}) {
+  const { id } = await params;
+  
   return (
     <div className="min-h-screen bg-background">
       <DashboardHeader />
@@ -17,7 +23,7 @@ export default function TicketDetailPage({ params }: { params: { id: string } })
             Back to tickets
           </Link>
           
-          <TicketDetail ticketId={params.id} />
+          <TicketDetail ticketId={id} />
         </div>
       </main>
     </div>

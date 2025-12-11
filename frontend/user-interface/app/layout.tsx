@@ -2,6 +2,8 @@ import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { Toaster } from '@/components/ui/toaster'
+import { AuthProvider } from '@/lib/contexts/AuthContext'
+import { StoreProvider } from '@/lib/providers/StoreProvider'
 import './globals.css'
 
 const inter = Inter({ subsets: ["latin"] });
@@ -37,9 +39,13 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className={`${inter.className} font-sans antialiased`}>
-        {children}
-        <Toaster />
-        <Analytics />
+        <AuthProvider>
+          <StoreProvider>
+            {children}
+            <Toaster />
+            <Analytics />
+          </StoreProvider>
+        </AuthProvider>
       </body>
     </html>
   )

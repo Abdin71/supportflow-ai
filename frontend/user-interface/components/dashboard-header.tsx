@@ -3,7 +3,8 @@
 import Link from "next/link"
 import { useRouter } from 'next/navigation'
 import { Button } from "@/components/ui/button"
-import { Sparkles, Plus, LogOut } from 'lucide-react'
+import { Sparkles, Plus, LogOut, User } from 'lucide-react'
+import { useAuth } from "@/lib/contexts/AuthContext"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,12 +14,38 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { useToast } from "@/lib/hooks/use-toast"
 
 export function DashboardHeader() {
   const router = useRouter()
+  const { user, logout } = useAuth()
+  const { toast } = useToast()
 
-  const handleLogout = () => {
-    router.push("/")
+  const handleLogout = async () => {
+    try {
+      await logout()
+      toast({
+        title: "Success",
+        description: "Logged out successfully",
+      })
+      router.push("/")
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to log out",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const getUserInitials = () => {
+    if (!user?.displayName) return "U"
+    return user.displayName
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2)
   }
 
   return (
@@ -44,20 +71,24 @@ export function DashboardHeader() {
               <Button variant="ghost" className="relative h-10 w-10 rounded-full">
                 <Avatar>
                   <AvatarFallback className="bg-primary text-primary-foreground">
-                    U
+                    {getUserInitials()}
                   </AvatarFallback>
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuContent align="end">
               <DropdownMenuLabel>
                 <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium">User Account</p>
-                  <p className="text-xs text-muted-foreground">user@example.com</p>
+                  <p className="text-sm font-medium leading-none">
+                    {user?.displayName || "User"}
+                  </p>
+                  <p className="text-xs leading-none text-muted-foreground">
+                    {user?.email}
+                  </p>
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleLogout} className="text-destructive cursor-pointer">
+              <DropdownMenuItem onClick={handleLogout}>
                 <LogOut className="w-4 h-4 mr-2" />
                 Log out
               </DropdownMenuItem>

@@ -39,12 +39,19 @@ service cloud.firestore {
              (oldStatus == 'closed' && newStatus in ['open']);
     }
     
-    // Validate message data
+    // Validate message data (for top-level messages collection)
     function isValidMessageData(data) {
-      return data.keys().hasAll(['text', 'userId', 'role', 'createdAt']) &&
+      return data.keys().hasAll(['ticketId', 'text', 'userId', 'userName', 'role', 'createdAt']) &&
+             data.ticketId is string &&
              data.text is string && data.text.size() >= 1 && data.text.size() <= 5000 &&
-             data.role in ['user', 'agent'] &&
-             data.userId is string;
+             data.userId is string &&
+             data.userName is string && data.userName.size() >= 1 && data.userName.size() <= 100 &&
+             data.role in ['user', 'agent'];
+    }
+    
+    // Helper to get ticket data
+    function getTicket(ticketId) {
+      return get(/databases/$(database)/documents/tickets/$(ticketId)).data;
     }
     
     // Check if user can update specific ticket fields
@@ -129,49 +136,47 @@ service cloud.firestore {
       allow delete: if false;
       
       // ======================================================================
-      // MESSAGES SUBCOLLECTION
-      // ======================================================================
-      
-      match /messages/{messageId} {
-        
-        // READ: Users can read messages in their tickets, admins can read all
-        allow read: if isAuthenticated() &&
-                       (get(/databases/$(database)/documents/tickets/$(ticketId)).data.userId == request.auth.uid ||
-                        isAdmin());
-        
-        // CREATE: Users can add messages to their tickets, admins to any ticket
-        allow create: if isAuthenticated() &&
-                         isValidMessageData(request.resource.data) &&
-                         request.resource.data.userId == request.auth.uid &&
-                         request.resource.data.createdAt == request.time &&
-                         // Verify role matches user type
-                         ((request.resource.data.role == 'user' && 
-                           get(/databases/$(database)/documents/tickets/$(ticketId)).data.userId == request.auth.uid) ||
-                          (request.resource.data.role == 'agent' && isAdmin()));
-        
-        // UPDATE: Users can edit their own messages within 5 minutes, admins anytime
-        allow update: if isAuthenticated() &&
-                         resource.data.userId == request.auth.uid &&
-                         (request.time < resource.data.createdAt + duration.value(5, 'm') || isAdmin()) &&
-                         // Only text and isEdited can change
-                         request.resource.data.diff(resource.data).affectedKeys()
-                           .hasOnly(['text', 'isEdited', 'editedAt']) &&
-                         request.resource.data.isEdited == true;
-        
-        // DELETE: Only admins can delete messages
-        allow delete: if isAdmin();
-      }
-      
-      // ======================================================================
       // ACTIVITY SUBCOLLECTION (Read-only, written by Cloud Functions)
       // ======================================================================
       
       match /activity/{activityId} {
         allow read: if isAuthenticated() &&
-                       (get(/databases/$(database)/documents/tickets/$(ticketId)).data.userId == request.auth.uid ||
-                        isAdmin());
+                       (get(/databases/$(database)/documents/tickets/$(ticketId)).data.userId == request.auth.uid || isAdmin());
         allow write: if false; // Only Cloud Functions can write activity logs
       }
+    }
+    
+    // ========================================================================
+    // MESSAGES COLLECTION (Top-level for better scalability)
+    // ========================================================================
+    
+    match /messages/{messageId} {
+      
+      // READ: Users can read messages for their tickets, admins can read all
+      allow read: if isAuthenticated() &&
+                     (getTicket(resource.data.ticketId).userId == request.auth.uid || isAdmin());
+      
+      // CREATE: Users can add messages to their tickets, admins to any ticket
+      allow create: if isAuthenticated() &&
+                       isValidMessageData(request.resource.data) &&
+                       request.resource.data.userId == request.auth.uid &&
+                       request.resource.data.createdAt == request.time &&
+                       // Verify role matches user type
+                       ((request.resource.data.role == 'user' && 
+                         getTicket(request.resource.data.ticketId).userId == request.auth.uid) ||
+                        (request.resource.data.role == 'agent' && isAdmin()));
+      
+      // UPDATE: Users can edit their own messages within 5 minutes, admins anytime
+      allow update: if isAuthenticated() &&
+                       resource.data.userId == request.auth.uid &&
+                       (request.time < resource.data.createdAt + duration.value(5, 'm') || isAdmin()) &&
+                       // Only text and isEdited can change
+                       request.resource.data.diff(resource.data).affectedKeys()
+                         .hasOnly(['text', 'isEdited', 'editedAt']) &&
+                       request.resource.data.isEdited == true;
+      
+      // DELETE: Only admins can delete messages
+      allow delete: if isAdmin();
     }
     
     // ========================================================================

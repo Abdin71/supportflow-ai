@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent } from "@/components/ui/card"
-import { useToast } from "@/hooks/use-toast"
+import { useToast } from "@/lib/hooks/use-toast"
+import { useAuth } from "@/lib/contexts/AuthContext"
 import { Loader2 } from 'lucide-react'
 
 export function LoginForm() {
@@ -15,6 +16,7 @@ export function LoginForm() {
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
   const { toast } = useToast()
+  const { signIn } = useAuth()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -30,15 +32,24 @@ export function LoginForm() {
 
     setIsLoading(true)
     
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500))
-    
-    toast({
-      title: "Success",
-      description: "Logged in successfully",
-    })
-    
-    router.push("/dashboard")
+    try {
+      await signIn(email, password)
+      
+      toast({
+        title: "Success",
+        description: "Logged in successfully",
+      })
+      
+      router.push("/dashboard")
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to sign in",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
