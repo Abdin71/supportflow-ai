@@ -1,0 +1,205 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ========================================================================
+    // HELPER FUNCTIONS - Business Logic in Security Rules
+    // ========================================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function getUserRole(userId) {
+      return get(/databases/$(database)/documents/users/$(userId)).data.role;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && getUserRole(request.auth.uid) == 'admin';
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // Validate ticket data structure
+    function isValidTicketData(data) {
+      return data.keys().hasAll(['subject', 'description', 'userId', 'status']) &&
+             data.subject is string && data.subject.size() >= 3 && data.subject.size() <= 200 &&
+             data.description is string && data.description.size() >= 10 && data.description.size() <= 5000 &&
+             data.status in ['open', 'in-progress', 'resolved', 'closed'] &&
+             data.userId is string;
+    }
+    
+    // Validate status transitions
+    function isValidStatusTransition(oldStatus, newStatus) {
+      return (oldStatus == 'open' && newStatus in ['in-progress', 'resolved', 'closed']) ||
+             (oldStatus == 'in-progress' && newStatus in ['open', 'resolved', 'closed']) ||
+             (oldStatus == 'resolved' && newStatus in ['open', 'in-progress', 'closed']) ||
+             (oldStatus == 'closed' && newStatus in ['open']);
+    }
+    
+    // Validate message data
+    function isValidMessageData(data) {
+      return data.keys().hasAll(['text', 'userId', 'role', 'createdAt']) &&
+             data.text is string && data.text.size() >= 1 && data.text.size() <= 5000 &&
+             data.role in ['user', 'agent'] &&
+             data.userId is string;
+    }
+    
+    // Check if user can update specific ticket fields
+    function canUpdateTicketFields(data) {
+      let allowedFields = isAdmin() 
+        ? ['status', 'priority', 'category', 'tags', 'assignedAgentId', 'updatedAt', 'hasUnreadMessages']
+        : ['status', 'updatedAt', 'hasUnreadMessages'];
+      
+      return data.diff(resource.data).affectedKeys().hasOnly(allowedFields);
+    }
+    
+    // ========================================================================
+    // USERS COLLECTION
+    // ========================================================================
+    
+    match /users/{userId} {
+      // Users can read their own profile, admins can read all
+      allow read: if isOwner(userId) || isAdmin();
+      
+      // Users can create their own profile during signup
+      allow create: if isAuthenticated() && 
+                       request.auth.uid == userId &&
+                       request.resource.data.role == 'user'; // Prevent self-promotion to admin
+      
+      // Users can update their own profile (limited fields), admins can update any
+      allow update: if isOwner(userId) && 
+                       request.resource.data.diff(resource.data).affectedKeys()
+                         .hasOnly(['displayName', 'photoURL', 'phoneNumber', 'updatedAt'])
+                    || isAdmin();
+      
+      // Only admins can delete users
+      allow delete: if isAdmin();
+    }
+    
+    // ========================================================================
+    // TICKETS COLLECTION - Primary Business Logic
+    // ========================================================================
+    
+    match /tickets/{ticketId} {
+      
+      // READ: Users read own tickets, admins read all
+      allow read: if isAuthenticated() && 
+                     (resource.data.userId == request.auth.uid || isAdmin());
+      
+      // CREATE: Authenticated users can create tickets
+      allow create: if isAuthenticated() &&
+                       request.resource.data.userId == request.auth.uid &&
+                       isValidTicketData(request.resource.data) &&
+                       // Ensure proper initial values
+                       request.resource.data.status == 'open' &&
+                       request.resource.data.createdAt == request.time &&
+                       request.resource.data.updatedAt == request.time &&
+                       request.resource.data.messageCount == 0 &&
+                       // AI metadata should indicate pending
+                       request.resource.data.aiMetadata.processingStatus == 'pending';
+      
+      // UPDATE: Complex business logic for status transitions and assignments
+      allow update: if isAuthenticated() &&
+                       // Validate status transitions
+                       (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['status']) ||
+                        isValidStatusTransition(resource.data.status, request.resource.data.status)) &&
+                       // Check permissions based on role
+                       (
+                         // Users can update their own tickets (limited fields)
+                         (resource.data.userId == request.auth.uid &&
+                          canUpdateTicketFields(request.resource.data) &&
+                          request.resource.data.diff(resource.data).affectedKeys()
+                            .hasOnly(['status', 'updatedAt', 'hasUnreadMessages'])) ||
+                         
+                         // Admins can update any ticket (more fields)
+                         (isAdmin() && canUpdateTicketFields(request.resource.data)) ||
+                         
+                         // Assigned agents can update their assigned tickets
+                         (resource.data.assignedAgentId == request.auth.uid &&
+                          getUserRole(request.auth.uid) == 'admin' &&
+                          canUpdateTicketFields(request.resource.data))
+                       ) &&
+                       // Ensure updatedAt is always set
+                       request.resource.data.updatedAt == request.time;
+      
+      // DELETE: Only via Cloud Function for audit trail (disabled for direct access)
+      allow delete: if false;
+      
+      // ======================================================================
+      // MESSAGES SUBCOLLECTION
+      // ======================================================================
+      
+      match /messages/{messageId} {
+        
+        // READ: Users can read messages in their tickets, admins can read all
+        allow read: if isAuthenticated() &&
+                       (get(/databases/$(database)/documents/tickets/$(ticketId)).data.userId == request.auth.uid ||
+                        isAdmin());
+        
+        // CREATE: Users can add messages to their tickets, admins to any ticket
+        allow create: if isAuthenticated() &&
+                         isValidMessageData(request.resource.data) &&
+                         request.resource.data.userId == request.auth.uid &&
+                         request.resource.data.createdAt == request.time &&
+                         // Verify role matches user type
+                         ((request.resource.data.role == 'user' && 
+                           get(/databases/$(database)/documents/tickets/$(ticketId)).data.userId == request.auth.uid) ||
+                          (request.resource.data.role == 'agent' && isAdmin()));
+        
+        // UPDATE: Users can edit their own messages within 5 minutes, admins anytime
+        allow update: if isAuthenticated() &&
+                         resource.data.userId == request.auth.uid &&
+                         (request.time < resource.data.createdAt + duration.value(5, 'm') || isAdmin()) &&
+                         // Only text and isEdited can change
+                         request.resource.data.diff(resource.data).affectedKeys()
+                           .hasOnly(['text', 'isEdited', 'editedAt']) &&
+                         request.resource.data.isEdited == true;
+        
+        // DELETE: Only admins can delete messages
+        allow delete: if isAdmin();
+      }
+      
+      // ======================================================================
+      // ACTIVITY SUBCOLLECTION (Read-only, written by Cloud Functions)
+      // ======================================================================
+      
+      match /activity/{activityId} {
+        allow read: if isAuthenticated() &&
+                       (get(/databases/$(database)/documents/tickets/$(ticketId)).data.userId == request.auth.uid ||
+                        isAdmin());
+        allow write: if false; // Only Cloud Functions can write activity logs
+      }
+    }
+    
+    // ========================================================================
+    // ANALYTICS COLLECTION (Admin only, written by Cloud Functions)
+    // ========================================================================
+    
+    match /analytics/{document=**} {
+      allow read: if isAdmin();
+      allow write: if false; // Only Cloud Functions can write analytics
+    }
+    
+    // ========================================================================
+    // NOTIFICATIONS COLLECTION
+    // ========================================================================
+    
+    match /notifications/{notificationId} {
+      // Users can read their own notifications
+      allow read: if isAuthenticated() && 
+                     resource.data.userId == request.auth.uid;
+      
+      // Users can mark their own notifications as read
+      allow update: if isAuthenticated() && 
+                       resource.data.userId == request.auth.uid &&
+                       request.resource.data.diff(resource.data).affectedKeys()
+                         .hasOnly(['read', 'readAt']);
+      
+      // Only Cloud Functions can create/delete notifications
+      allow create, delete: if false;
+    }
+  }
+}
