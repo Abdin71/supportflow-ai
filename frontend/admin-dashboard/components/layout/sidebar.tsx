@@ -32,8 +32,20 @@ export function Sidebar() {
   const pathname = usePathname()
 
   return (
-    <aside className="fixed left-0 top-16 z-40 h-[calc(100vh-4rem)] w-64 border-r border-border bg-background">
-      <nav className="flex h-full flex-col gap-2 p-4">
+    <aside className="fixed left-0 top-0 z-40 h-screen w-64 border-r border-border bg-background">
+      <div className="flex h-16 items-center gap-3 border-b border-border px-4">
+        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
+          <svg className="h-5 w-5 text-primary-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+          </svg>
+        </div>
+        <div>
+          <h1 className="text-lg font-semibold leading-none text-foreground">SupportFlow AI</h1>
+          <p className="text-xs text-muted-foreground">Customer Support</p>
+        </div>
+      </div>
+
+      <nav className="flex h-[calc(100vh-4rem)] flex-col gap-2 p-4">
         <div className="flex-1 space-y-1">
           {navigation.map((item) => {
             const isActive = pathname === item.href

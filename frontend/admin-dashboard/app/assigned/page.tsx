@@ -2,8 +2,10 @@
 
 import { useState } from "react"
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
+import { ContentHeader } from "@/components/layout/content-header"
 import { FilterBar } from "@/components/tickets/filter-bar"
 import { TicketsTable } from "@/components/tickets/tickets-table"
+import { CreateTicketModal } from "@/components/modals/create-ticket-modal"
 import { ProtectedRoute } from "@/components/auth/protected-route"
 
 export default function AssignedTicketsPage() {
@@ -11,16 +13,18 @@ export default function AssignedTicketsPage() {
   const [category, setCategory] = useState("all")
   const [sortBy, setSortBy] = useState("newest")
   const [searchQuery, setSearchQuery] = useState("")
+  const [isNewTicketOpen, setIsNewTicketOpen] = useState(false)
 
   return (
     <ProtectedRoute>
       <DashboardLayout>
         <div className="space-y-6">
-          {/* Page Header */}
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight text-foreground">Assigned to Me</h1>
-            <p className="mt-1 text-muted-foreground">Tickets currently assigned to your account</p>
-          </div>
+          {/* Content Header */}
+          <ContentHeader
+            title="Assigned to Me"
+            description="Tickets currently assigned to your account"
+            onNewTicket={() => setIsNewTicketOpen(true)}
+          />
 
           {/* Filter Bar */}
           <FilterBar
@@ -37,6 +41,8 @@ export default function AssignedTicketsPage() {
           {/* Tickets Table - filtered to show only assigned tickets */}
           <TicketsTable />
         </div>
+
+        <CreateTicketModal open={isNewTicketOpen} onOpenChange={setIsNewTicketOpen} />
       </DashboardLayout>
     </ProtectedRoute>
   )

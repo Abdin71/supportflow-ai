@@ -1,6 +1,7 @@
 "use client"
 
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
+import { ContentHeader } from "@/components/layout/content-header"
 import { ProtectedRoute } from "@/components/auth/protected-route"
 import { useAuth } from "@/lib/auth-context"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -18,10 +19,7 @@ export default function SettingsPage() {
       <DashboardLayout>
         <div className="space-y-6">
           {/* Page Header */}
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight text-foreground">Settings</h1>
-            <p className="mt-1 text-muted-foreground">Manage your account and preferences</p>
-          </div>
+          <ContentHeader title="Settings" description="Manage your account and preferences" />
 
           {/* Profile Settings */}
           <Card>

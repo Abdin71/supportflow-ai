@@ -2,11 +2,13 @@
 
 import { useState } from "react"
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
+import { ContentHeader } from "@/components/layout/content-header"
 import { TicketHeader } from "@/components/ticket-details/ticket-header"
 import { ConversationThread } from "@/components/ticket-details/conversation-thread"
 import { ReplyForm } from "@/components/ticket-details/reply-form"
 import { TicketInfo } from "@/components/ticket-details/ticket-info"
 import { Card, CardContent } from "@/components/ui/card"
+import { CreateTicketModal } from "@/components/modals/create-ticket-modal"
 import { ProtectedRoute } from "@/components/auth/protected-route"
 
 export default function TicketDetailsPage({
@@ -15,11 +17,18 @@ export default function TicketDetailsPage({
   params: { id: string }
 }) {
   const [status, setStatus] = useState("open")
+  const [isNewTicketOpen, setIsNewTicketOpen] = useState(false)
 
   return (
     <ProtectedRoute>
       <DashboardLayout>
         <div className="space-y-6">
+          <ContentHeader
+            title={`Ticket #${params.id}`}
+            description="Login issue with mobile app - Cannot authenticate"
+            onNewTicket={() => setIsNewTicketOpen(true)}
+          />
+
           <TicketHeader
             ticketId={params.id}
             subject="Login issue with mobile app - Cannot authenticate"
@@ -45,6 +54,8 @@ export default function TicketDetailsPage({
             </div>
           </div>
         </div>
+
+        <CreateTicketModal open={isNewTicketOpen} onOpenChange={setIsNewTicketOpen} />
       </DashboardLayout>
     </ProtectedRoute>
   )

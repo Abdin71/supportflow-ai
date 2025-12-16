@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
+import { ContentHeader } from "@/components/layout/content-header"
 import { MetricCard } from "@/components/dashboard/metric-card"
 import { RecentActivity } from "@/components/dashboard/recent-activity"
 import { QuickStats } from "@/components/dashboard/quick-stats"
@@ -14,13 +15,14 @@ export default function DashboardPage() {
 
   return (
     <ProtectedRoute>
-      <DashboardLayout onNewTicket={() => setIsNewTicketOpen(true)}>
+      <DashboardLayout>
         <div className="space-y-8">
-          {/* Page Header */}
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight text-foreground">Dashboard Overview</h1>
-            <p className="mt-1 text-muted-foreground">Monitor your support metrics and recent activity</p>
-          </div>
+          {/* Content Header */}
+          <ContentHeader
+            title="Dashboard Overview"
+            description="Monitor your support metrics and recent activity"
+            onNewTicket={() => setIsNewTicketOpen(true)}
+          />
 
           {/* Metric Cards */}
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
@@ -63,9 +65,9 @@ export default function DashboardPage() {
           {/* Quick Stats */}
           <QuickStats />
         </div>
-      </DashboardLayout>
 
-      <CreateTicketModal open={isNewTicketOpen} onOpenChange={setIsNewTicketOpen} />
+        <CreateTicketModal open={isNewTicketOpen} onOpenChange={setIsNewTicketOpen} />
+      </DashboardLayout>
     </ProtectedRoute>
   )
 }
