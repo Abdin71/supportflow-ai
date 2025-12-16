@@ -1,8 +1,8 @@
 import type React from "react"
 import { Analytics } from "@vercel/analytics/next"
 import "./globals.css"
-// <CHANGE> Added AuthProvider for authentication context
-import { AuthProvider } from "@/lib/auth-context"
+import { AuthProvider } from "@/lib/contexts/AuthContext"
+import { StoreProvider } from "@/lib/providers/StoreProvider"
 
 // ... existing code ...
 
@@ -14,8 +14,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`font-sans antialiased`}>
-        {/* <CHANGE> Wrapped children with AuthProvider for global auth state */}
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          <StoreProvider>
+            {children}
+          </StoreProvider>
+        </AuthProvider>
         <Analytics />
       </body>
     </html>
