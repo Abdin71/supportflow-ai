@@ -30,3 +30,29 @@ yarn-error.log*
 
 # TypeScript
 *.tsbuildinfo
+next-env.d.ts
+
+# Proposal Exclusions (Build & Config)
+dist/
+package-lock.json
+pnpm-lock.yaml
+components.json
+postcss.config.mjs
+
+# Proposal Exclusions (Documentation)
+FIREBASE_INTEGRATION.md
+FIREBASE_SETUP.md
+
+# Proposal Exclusions (Assets)
+public/apple-icon.png
+public/icon-dark-32x32.png
+public/icon-light-32x32.png
+public/icon.svg
+public/placeholder-logo.png
+public/placeholder-logo.svg
+public/placeholder-user.jpg
+public/placeholder.jpg
+public/placeholder.svg
+
+# Proposal Exclusions (Library Components)
+components/ui/

@@ -1,7 +1,7 @@
 import type React from "react"
 import { Analytics } from "@vercel/analytics/next"
 import "./globals.css"
-import { AuthProvider } from "@/lib/contexts/AuthContext"
+import { AuthProvider } from "@/components/auth/AuthProvider"
 import { StoreProvider } from "@/lib/providers/StoreProvider"
 
 // ... existing code ...

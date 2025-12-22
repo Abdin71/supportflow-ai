@@ -11,7 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Plus, User, LogOut } from "lucide-react"
-import { useAuth } from "@/lib/auth-context"
+import { useAuthStore } from "@/lib/stores/authStore"
 import { useRouter } from "next/navigation"
 
 interface ContentHeaderProps {
@@ -21,7 +21,7 @@ interface ContentHeaderProps {
 }
 
 export function ContentHeader({ title, description, onNewTicket }: ContentHeaderProps) {
-  const { user, signOut } = useAuth()
+  const { user, signOut } = useAuthStore()
   const router = useRouter()
 
   const handleLogout = async () => {

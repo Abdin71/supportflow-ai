@@ -1,25 +1,35 @@
-"use client"
+"use client";
 
-import type React from "react"
-
-import { useEffect } from "react"
-import { useRouter } from "next/navigation"
-import { useAuth } from "@/lib/contexts/AuthContext"
-import { Loader2 } from "lucide-react"
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuthStore } from '../../lib/stores/authStore';
+import { Loader2 } from 'lucide-react';
 
 interface ProtectedRouteProps {
-  children: React.ReactNode
+  children: React.ReactNode;
+  requiredRole?: 'admin' | 'agent' | 'manager';
 }
 
-export function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { user, loading } = useAuth()
-  const router = useRouter()
+export function ProtectedRoute({ 
+  children, 
+  requiredRole 
+}: ProtectedRouteProps) {
+  const { user, role, loading } = useAuthStore();
+  const router = useRouter();
 
   useEffect(() => {
-    if (!loading && !user) {
-      router.push("/login")
+    if (!loading) {
+      if (!user) {
+        router.push('/login');
+      } else if (requiredRole && role !== requiredRole && role !== 'admin') {
+        // Admin has access to everything, otherwise check specific role
+        router.push('/'); 
+      } else if (role === 'user') {
+         // Regular users shouldn't be in admin dashboard
+         window.location.href = 'http://localhost:3001'; 
+      }
     }
-  }, [user, loading, router])
+  }, [user, role, loading, router, requiredRole]);
 
   if (loading) {
     return (
@@ -29,12 +39,20 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
           <p className="mt-4 text-sm text-muted-foreground">Loading...</p>
         </div>
       </div>
-    )
+    );
   }
 
   if (!user) {
-    return null
+    return null;
   }
 
-  return <>{children}</>
+  if (requiredRole && role !== requiredRole && role !== 'admin') {
+    return null;
+  }
+  
+  if (role === 'user') {
+    return null;
+  }
+
+  return <>{children}</>;
 }

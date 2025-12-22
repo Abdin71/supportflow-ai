@@ -25,6 +25,7 @@ export const functions = getFunctions(app);
 
 // Connect to emulators in development
 if (process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATOR === 'true') {
+  console.log('[Firebase] Connecting to emulators...');
   if (!auth.emulatorConfig) {
     connectAuthEmulator(auth, 'http://localhost:9099');
   }
@@ -40,6 +41,8 @@ if (process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_USE_FIREBA
   if (!functions._customDomain?.includes('localhost')) {
     connectFunctionsEmulator(functions, 'localhost', 5001);
   }
+} else {
+  console.log('[Firebase] Connected to production project:', firebaseConfig.projectId);
 }
 
 export default app;

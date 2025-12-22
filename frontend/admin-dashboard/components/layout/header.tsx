@@ -11,7 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Plus, User, LogOut } from "lucide-react"
-import { useAuth } from "@/lib/auth-context"
+import { useAuthStore } from "@/lib/stores/authStore"
 import { useRouter } from "next/navigation"
 
 interface HeaderProps {
@@ -19,7 +19,7 @@ interface HeaderProps {
 }
 
 export function Header({ onNewTicket }: HeaderProps) {
-  const { user, signOut } = useAuth()
+  const { user, signOut } = useAuthStore()
   const router = useRouter()
 
   const handleLogout = async () => {

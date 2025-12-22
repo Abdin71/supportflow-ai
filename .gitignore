@@ -43,3 +43,11 @@ admin-dashboard-ui/
 supportflowai.md
 RESTRUCTURING.md
 _demo/
+backend/scripts/check-user.js
+backend/serviceAccountKey.json
+backend/debug-user.js
+backend/check-project-id.js
+ADMIN_ACCESS_FIX.md
+generate_proposal_tree.py
+DEBUGGING_AUTH.md
+.github/copilot-instructions.md

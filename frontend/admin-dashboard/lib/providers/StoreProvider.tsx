@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuthStore } from '../stores/authStore';
 import { useTicketStore } from '../stores/ticketStore';
 import { useMessageStore } from '../stores/messageStore';
 import { useUserStore } from '../stores/userStore';
@@ -11,7 +11,8 @@ import { useUserStore } from '../stores/userStore';
  * Manages lifecycle of real-time Firestore subscriptions
  */
 export function StoreProvider({ children }: { children: React.ReactNode }) {
-  const { user, isAuthenticated } = useAuth();
+  const { user, role } = useAuthStore();
+  const isAuthenticated = !!user;
 
   useEffect(() => {
     if (user && isAuthenticated) {
