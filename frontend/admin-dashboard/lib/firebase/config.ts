@@ -1,8 +1,6 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getAuth, connectAuthEmulator } from 'firebase/auth';
-import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
-import { getStorage, connectStorageEmulator } from 'firebase/storage';
-import { getFunctions, connectFunctionsEmulator } from 'firebase/functions';
+import { getAuth } from 'firebase/auth';
+import { getFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -11,38 +9,11 @@ const firebaseConfig = {
   storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
   messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
 };
 
 // Initialize Firebase
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+const auth = getAuth(app);
+const db = getFirestore(app);
 
-// Initialize Firebase services
-export const auth = getAuth(app);
-export const db = getFirestore(app);
-export const storage = getStorage(app);
-export const functions = getFunctions(app);
-
-// Connect to emulators in development
-if (process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATOR === 'true') {
-  console.log('[Firebase] Connecting to emulators...');
-  if (!auth.emulatorConfig) {
-    connectAuthEmulator(auth, 'http://localhost:9099');
-  }
-  // @ts-ignore - emulator may already be connected
-  if (!db._settings?.host?.includes('localhost')) {
-    connectFirestoreEmulator(db, 'localhost', 8080);
-  }
-  // @ts-ignore - emulator may already be connected
-  if (!storage._host?.includes('localhost')) {
-    connectStorageEmulator(storage, 'localhost', 9199);
-  }
-  // @ts-ignore - emulator may already be connected
-  if (!functions._customDomain?.includes('localhost')) {
-    connectFunctionsEmulator(functions, 'localhost', 5001);
-  }
-} else {
-  console.log('[Firebase] Connected to production project:', firebaseConfig.projectId);
-}
-
-export default app;
+export { app, auth, db };

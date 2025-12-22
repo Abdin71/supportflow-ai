@@ -3,7 +3,7 @@
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
 import { ContentHeader } from "@/components/layout/content-header"
 import { ProtectedRoute } from "@/components/auth/protected-route"
-import { useAuthStore } from "@/lib/stores/authStore"
+import { useAuth } from "@/lib/auth-context"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
@@ -12,7 +12,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { User, Mail, Shield } from "lucide-react"
 
 export default function SettingsPage() {
-  const { user } = useAuthStore()
+  const { user } = useAuth()
 
   return (
     <ProtectedRoute>

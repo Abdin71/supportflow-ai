@@ -1,30 +1,37 @@
-import type React from "react"
-import { Analytics } from "@vercel/analytics/next"
-import "./globals.css"
-import { AuthProvider } from "@/components/auth/AuthProvider"
-import { StoreProvider } from "@/lib/providers/StoreProvider"
+import type { Metadata } from "next";
+import { Inter } from "next/font/google";
+import "./globals.css";
+import { AuthProvider } from "@/lib/auth-context";
+import { ThemeProvider } from "@/components/theme-provider";
+import { Toaster } from "@/components/ui/toaster";
 
-// ... existing code ...
+const inter = Inter({ subsets: ["latin"] });
+
+export const metadata: Metadata = {
+  title: "SupportFlow AI Admin",
+  description: "Admin dashboard for SupportFlow AI",
+};
 
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode
+  children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className={`font-sans antialiased`}>
+    <html lang="en" suppressHydrationWarning>
+      <body className={inter.className}>
         <AuthProvider>
-          <StoreProvider>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="light"
+            enableSystem={false}
+            disableTransitionOnChange
+          >
             {children}
-          </StoreProvider>
+            <Toaster />
+          </ThemeProvider>
         </AuthProvider>
-        <Analytics />
       </body>
     </html>
-  )
+  );
 }
-
-export const metadata = {
-      generator: 'v0.app'
-    };
