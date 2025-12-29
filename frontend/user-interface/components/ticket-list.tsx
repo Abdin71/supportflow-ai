@@ -31,6 +31,13 @@ const statusLabels = {
   closed: "Closed",
 }
 
+const priorityColors = {
+  low: "bg-blue-100 text-blue-800 border-blue-200",
+  medium: "bg-yellow-100 text-yellow-800 border-yellow-200",
+  high: "bg-orange-100 text-orange-800 border-orange-200",
+  urgent: "bg-red-100 text-red-800 border-red-200",
+}
+
 export function TicketList() {
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const { tickets, loading } = useTickets(
@@ -94,12 +101,23 @@ export function TicketList() {
                           {ticket.description}
                         </p>
                       </div>
-                      <Badge 
-                        variant="outline" 
-                        className={statusColors[ticket.status as keyof typeof statusColors]}
-                      >
-                        {statusLabels[ticket.status as keyof typeof statusLabels]}
-                      </Badge>
+                      <div className="flex flex-col gap-2 items-end">
+                        <Badge 
+                          variant="outline" 
+                          className={statusColors[ticket.status as keyof typeof statusColors]}
+                        >
+                          {statusLabels[ticket.status as keyof typeof statusLabels]}
+                        </Badge>
+                        {/* AI Priority Badge */}
+                        {ticket.priority && (
+                          <Badge 
+                            variant="outline"
+                            className={priorityColors[ticket.priority as keyof typeof priorityColors]}
+                          >
+                            {ticket.priority.toUpperCase()}
+                          </Badge>
+                        )}
+                      </div>
                     </div>
 
                     <div className="flex items-center gap-4 text-xs text-muted-foreground">
@@ -111,19 +129,34 @@ export function TicketList() {
                         <MessageSquare className="w-3.5 h-3.5" />
                         {ticket.messageCount} {ticket.messageCount === 1 ? "message" : "messages"}
                       </div>
+                      {/* AI Category Badge */}
                       {ticket.category && (
-                        <div className="inline-flex items-center px-2 py-0.5 rounded bg-primary/10 text-primary">
+                        <div className="inline-flex items-center px-2 py-0.5 rounded bg-primary/10 text-primary font-medium">
                           {ticket.category}
+                        </div>
+                      )}
+                      {/* AI Processing Status */}
+                      {ticket.aiMetadata?.processingStatus === 'pending' && (
+                        <div className="flex items-center gap-1 text-blue-600">
+                          <span className="animate-pulse">●</span>
+                          <span>AI analyzing...</span>
+                        </div>
+                      )}
+                      {ticket.aiMetadata?.processingStatus === 'completed' && (
+                        <div className="flex items-center gap-1 text-green-600">
+                          <span>✓</span>
+                          <span>AI analyzed</span>
                         </div>
                       )}
                     </div>
 
+                    {/* AI Tags */}
                     {ticket.tags && ticket.tags.length > 0 && (
                       <div className="flex flex-wrap gap-1.5">
                         {ticket.tags.map((tag) => (
                           <div
                             key={tag}
-                            className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-secondary text-foreground"
+                            className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-secondary text-foreground border border-border"
                           >
                             {tag}
                           </div>

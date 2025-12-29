@@ -27,6 +27,13 @@ const statusLabels = {
   closed: "Closed",
 }
 
+const priorityColors = {
+  low: "bg-blue-100 text-blue-800 border-blue-200",
+  medium: "bg-yellow-100 text-yellow-800 border-yellow-200",
+  high: "bg-orange-100 text-orange-800 border-orange-200",
+  urgent: "bg-red-100 text-red-800 border-red-200",
+}
+
 export function TicketDetail({ ticketId }: { ticketId: string }) {
   const [reply, setReply] = useState("")
   const { toast } = useToast()
@@ -103,12 +110,23 @@ export function TicketDetail({ ticketId }: { ticketId: string }) {
                 {ticket.description}
               </p>
             </div>
-            <Badge 
-              variant="outline" 
-              className={statusColors[ticket.status as keyof typeof statusColors]}
-            >
-              {statusLabels[ticket.status as keyof typeof statusLabels]}
-            </Badge>
+            <div className="flex flex-col gap-2">
+              <Badge 
+                variant="outline" 
+                className={statusColors[ticket.status as keyof typeof statusColors]}
+              >
+                {statusLabels[ticket.status as keyof typeof statusLabels]}
+              </Badge>
+              {/* AI Priority Badge */}
+              {ticket.priority && (
+                <Badge 
+                  variant="outline"
+                  className={priorityColors[ticket.priority as keyof typeof priorityColors]}
+                >
+                  {ticket.priority.toUpperCase()}
+                </Badge>
+              )}
+            </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground pt-2 border-t border-border">
@@ -121,6 +139,19 @@ export function TicketDetail({ ticketId }: { ticketId: string }) {
                 {ticket.category}
               </div>
             )}
+            {/* AI Processing Status */}
+            {ticket.aiMetadata?.processingStatus === 'pending' && (
+              <div className="flex items-center gap-1.5 text-blue-600">
+                <span className="animate-pulse">\u25cf</span>
+                <span>AI is analyzing...</span>
+              </div>
+            )}
+            {ticket.aiMetadata?.processingStatus === 'completed' && (
+              <div className="flex items-center gap-1.5 text-green-600">
+                <span>\u2713</span>
+                <span>AI analyzed</span>
+              </div>
+            )}
           </div>
 
           {ticket.tags && ticket.tags.length > 0 && (
@@ -128,7 +159,7 @@ export function TicketDetail({ ticketId }: { ticketId: string }) {
               {ticket.tags.map((tag: string) => (
                 <div
                   key={tag}
-                  className="inline-flex items-center px-2.5 py-1 rounded-full bg-secondary text-foreground text-sm"
+                  className="inline-flex items-center px-2.5 py-1 rounded-full bg-secondary text-foreground text-sm border border-border"
                 >
                   {tag}
                 </div>
@@ -137,6 +168,59 @@ export function TicketDetail({ ticketId }: { ticketId: string }) {
           )}
         </CardContent>
       </Card>
+
+      {/* AI Analysis Section */}
+      {(ticket.category || ticket.priority || (ticket.tags && ticket.tags.length > 0)) && (
+        <Card className="bg-card border-border">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-primary" />
+              AI Analysis
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {ticket.category && (
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-muted-foreground min-w-[80px]">Category:</span>
+                <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
+                  {ticket.category}
+                </Badge>
+              </div>
+            )}
+            {ticket.priority && (
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-muted-foreground min-w-[80px]">Priority:</span>
+                <Badge 
+                  variant="outline"
+                  className={priorityColors[ticket.priority as keyof typeof priorityColors]}
+                >
+                  {ticket.priority.toUpperCase()}
+                </Badge>
+              </div>
+            )}
+            {ticket.tags && ticket.tags.length > 0 && (
+              <div className="flex items-start gap-2">
+                <span className="text-sm font-medium text-muted-foreground min-w-[80px]">Keywords:</span>
+                <div className="flex flex-wrap gap-1.5">
+                  {ticket.tags.map((tag: string) => (
+                    <Badge key={tag} variant="secondary" className="border border-border">
+                      {tag}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+            {ticket.aiMetadata?.processingStatus === 'completed' && (
+              <div className="mt-4 pt-4 border-t border-border">
+                <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  This ticket was automatically analyzed by AI to help route and prioritize your request.
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Messages */}
       <Card className="bg-card border-border">
