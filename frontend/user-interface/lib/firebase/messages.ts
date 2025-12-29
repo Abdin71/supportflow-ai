@@ -20,6 +20,7 @@ import {
   Unsubscribe,
   where,
   limit as firestoreLimit,
+  increment,
 } from 'firebase/firestore';
 import { db } from './config';
 
@@ -47,6 +48,7 @@ export async function addMessage(messageData: {
   role: 'user' | 'agent';
   isAiSuggestion?: boolean;
 }): Promise<string> {
+  // 1. Add message to messages collection
   const messageRef = await addDoc(
     collection(db, 'messages'),
     {
@@ -61,6 +63,13 @@ export async function addMessage(messageData: {
       editedAt: null,
     }
   );
+
+  // 2. Update ticket metadata with message count increment
+  const ticketRef = doc(db, 'tickets', messageData.ticketId);
+  await updateDoc(ticketRef, {
+    updatedAt: serverTimestamp(),
+    messageCount: increment(1),
+  });
 
   return messageRef.id;
 }
