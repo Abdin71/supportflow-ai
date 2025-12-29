@@ -14,6 +14,7 @@ import { useTicketStore } from "@/lib/stores/ticketStore"
 import { useAuth } from "@/lib/auth-context"
 import type { Ticket } from "@/lib/firebase/types"
 import { formatDistanceToNow } from "date-fns"
+import { AIStatusBadge } from "@/components/ui/ai-status-badge"
 
 interface TicketsTableProps {
   searchQuery?: string;
@@ -145,8 +146,10 @@ export function TicketsTable({ searchQuery = "" }: TicketsTableProps) {
               <TableHead className="w-[100px]">Ticket ID</TableHead>
               <TableHead>Subject</TableHead>
               <TableHead className="w-[130px]">Status</TableHead>
-              <TableHead className="w-[130px]">Priority</TableHead>
-              <TableHead className="w-[130px]">Messages</TableHead>
+              <TableHead className="w-[130px]">Category</TableHead>
+              <TableHead className="w-[120px]">Priority</TableHead>
+              <TableHead className="w-[110px]">AI Status</TableHead>
+              <TableHead className="w-[100px]">Messages</TableHead>
               <TableHead className="w-[120px]">Last Update</TableHead>
               <TableHead className="w-[100px] text-right">Actions</TableHead>
             </TableRow>
@@ -203,6 +206,15 @@ export function TicketsTable({ searchQuery = "" }: TicketsTableProps) {
                     </DropdownMenu>
                   </TableCell>
                   <TableCell>
+                    {ticket.category ? (
+                      <Badge variant="outline" className="text-xs">
+                        {ticket.category}
+                      </Badge>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">Uncategorized</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
                     <div
                       className={cn(
                         "flex items-center gap-1.5 text-sm font-medium",
@@ -212,6 +224,18 @@ export function TicketsTable({ searchQuery = "" }: TicketsTableProps) {
                       <PriorityIcon className="h-4 w-4" />
                       {priorityConfig[priority].label}
                     </div>
+                  </TableCell>
+                  <TableCell>
+                    {ticket.aiMetadata?.processingStatus ? (
+                      <AIStatusBadge 
+                        status={ticket.aiMetadata.processingStatus} 
+                        size="sm"
+                      />
+                    ) : (
+                      <Badge variant="outline" className="text-xs bg-gray-50 text-gray-600">
+                        No AI
+                      </Badge>
+                    )}
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">

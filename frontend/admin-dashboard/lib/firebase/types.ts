@@ -27,6 +27,9 @@ export interface AIMetadata {
   completedAt?: Timestamp;
   category?: string;
   suggestedPriority?: 'low' | 'medium' | 'high' | 'urgent';
+  confidence?: number;
+  modelVersion?: string;
+  usedFallback?: boolean;
   error?: string;
 }
 

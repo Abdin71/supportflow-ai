@@ -3,13 +3,14 @@
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ArrowLeft, UserPlus } from "lucide-react"
+import { ArrowLeft, UserPlus, Tag } from "lucide-react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
 import { useTicketStore } from "@/lib/stores/ticketStore"
 import { useAuth } from "@/lib/auth-context"
 import type { Ticket } from "@/lib/firebase/types"
 import { useToast } from "@/hooks/use-toast"
+import { AIStatusBadge } from "@/components/ui/ai-status-badge"
 
 interface TicketHeaderProps {
   ticket: Ticket
@@ -35,6 +36,25 @@ const statusConfig = {
   closed: {
     label: "Closed",
     className: "bg-gray-100 text-gray-600",
+  },
+}
+
+const priorityConfig = {
+  low: {
+    label: "Low",
+    className: "bg-blue-100 text-blue-700 border-blue-200",
+  },
+  medium: {
+    label: "Medium",
+    className: "bg-yellow-100 text-yellow-700 border-yellow-200",
+  },
+  high: {
+    label: "High",
+    className: "bg-orange-100 text-orange-700 border-orange-200",
+  },
+  urgent: {
+    label: "Urgent",
+    className: "bg-red-100 text-red-700 border-red-200",
   },
 }
 
@@ -83,6 +103,53 @@ export function TicketHeader({ ticket }: TicketHeaderProps) {
             </Badge>
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">{ticket.subject}</h1>
+          
+          {/* AI Metadata Section */}
+          <div className="flex flex-wrap items-center gap-2 pt-2">
+            {/* AI Status Badge */}
+            {ticket.aiMetadata?.processingStatus && (
+              <AIStatusBadge 
+                status={ticket.aiMetadata.processingStatus}
+                confidence={ticket.aiMetadata.completedAt ? (ticket as any).aiMetadata?.confidence : undefined}
+                showConfidence={ticket.aiMetadata.processingStatus === 'completed'}
+                size="sm"
+              />
+            )}
+            
+            {/* AI Category */}
+            {ticket.category && (
+              <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
+                {ticket.category}
+              </Badge>
+            )}
+            
+            {/* AI Priority */}
+            {ticket.priority && (
+              <Badge 
+                variant="outline" 
+                className={priorityConfig[ticket.priority]?.className || priorityConfig.medium.className}
+              >
+                {priorityConfig[ticket.priority]?.label || 'Medium'}
+              </Badge>
+            )}
+            
+            {/* AI Tags */}
+            {(ticket as any).tags && Array.isArray((ticket as any).tags) && (ticket as any).tags.length > 0 && (
+              <>
+                <Tag className="h-3.5 w-3.5 text-muted-foreground" />
+                {(ticket as any).tags.slice(0, 3).map((tag: string, index: number) => (
+                  <Badge key={index} variant="secondary" className="text-xs">
+                    {tag}
+                  </Badge>
+                ))}
+                {(ticket as any).tags.length > 3 && (
+                  <span className="text-xs text-muted-foreground">
+                    +{(ticket as any).tags.length - 3} more
+                  </span>
+                )}
+              </>
+            )}
+          </div>
         </div>
 
         <div className="flex items-center gap-2">

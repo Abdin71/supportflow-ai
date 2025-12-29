@@ -2,7 +2,7 @@
 
 import { create } from 'zustand';
 import type { Message } from '../firebase/types';
-import { subscribeToMessages } from '../firebase/tickets';
+import { subscribeToMessages, sendReply } from '../firebase/tickets';
 import type { Unsubscribe } from 'firebase/firestore';
 
 interface MessageState {
@@ -18,6 +18,13 @@ interface MessageState {
   unsubscribeFromTicket: (ticketId: string) => void;
   cleanup: () => void;
   getMessages: (ticketId: string) => Message[];
+  addMessage: (ticketId: string, messageData: {
+    text: string;
+    userId: string;
+    userName: string;
+    role: 'user' | 'agent';
+    isAiSuggestion: boolean;
+  }) => Promise<void>;
 }
 
 export const useMessageStore = create<MessageState>((set, get) => ({
@@ -96,5 +103,16 @@ export const useMessageStore = create<MessageState>((set, get) => ({
   // Get messages for a ticket (convenience method)
   getMessages: (ticketId: string) => {
     return get().messagesByTicket[ticketId] || [];
+  },
+
+  // Add a new message (send reply)
+  addMessage: async (ticketId: string, messageData) => {
+    const agentData = {
+      uid: messageData.userId,
+      email: null,
+      displayName: messageData.userName
+    };
+    await sendReply(ticketId, messageData.text, agentData, messageData.isAiSuggestion);
+    // Real-time subscription will update the UI automatically
   }
 }));
