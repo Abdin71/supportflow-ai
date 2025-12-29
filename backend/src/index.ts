@@ -1,13 +1,17 @@
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
 import OpenAI from 'openai';
+import * as dotenv from 'dotenv';
+
+// Load environment variables
+dotenv.config();
 
 // Initialize Firebase Admin
 admin.initializeApp();
 
-// Initialize OpenAI
+// Initialize OpenAI with fallback to Firebase Functions config
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey: process.env.OPENAI_API_KEY || functions.config().openai?.api_key,
 });
 
 // ============================================================================
