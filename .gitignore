@@ -39,6 +39,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Project-specific ignores
 admin-dashboard-ui/
 supportflowai.md
 RESTRUCTURING.md
@@ -47,7 +49,16 @@ backend/scripts/check-user.js
 backend/serviceAccountKey.json
 backend/debug-user.js
 backend/check-project-id.js
+
+# Development documentation (non-essential)
 ADMIN_ACCESS_FIX.md
+DEBUGGING_AUTH.md
+FIRESTORE_RULES_FIX.md
+frontend/admin-dashboard/BUG_FIXES.md
+frontend/admin-dashboard/FIRESTORE_EXTENSION_COMPLETE.md
+frontend/admin-dashboard/TESTING_GUIDE.md
+frontend/admin-dashboard/FIRESTORE_INTEGRATION.md
+FIRESTORE_RULES_ADMIN_CREATION.md
 generate_proposal_tree.py
 DEBUGGING_AUTH.md
 .github/copilot-instructions.md

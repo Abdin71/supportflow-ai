@@ -1,9 +1,11 @@
 "use client"
+import { useMemo } from "react"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { Search } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useTicketStore } from "@/lib/stores/ticketStore"
 
 interface FilterBarProps {
   activeStatus: string
@@ -16,13 +18,6 @@ interface FilterBarProps {
   onSearchChange: (query: string) => void
 }
 
-const statusTabs = [
-  { value: "all", label: "All", count: 52 },
-  { value: "open", label: "Open", count: 24 },
-  { value: "progress", label: "In Progress", count: 16 },
-  { value: "resolved", label: "Resolved", count: 12 },
-]
-
 export function FilterBar({
   activeStatus,
   onStatusChange,
@@ -33,6 +28,26 @@ export function FilterBar({
   searchQuery,
   onSearchChange,
 }: FilterBarProps) {
+  const { tickets } = useTicketStore()
+  
+  // Calculate status counts from real data
+  const statusCounts = useMemo(() => {
+    return {
+      all: tickets.length,
+      open: tickets.filter(t => t.status === 'open').length,
+      'in-progress': tickets.filter(t => t.status === 'in-progress').length,
+      pending: tickets.filter(t => t.status === 'pending').length,
+      resolved: tickets.filter(t => t.status === 'resolved').length,
+      closed: tickets.filter(t => t.status === 'closed').length,
+    }
+  }, [tickets])
+  
+  const statusTabs = [
+    { value: "all", label: "All", count: statusCounts.all },
+    { value: "open", label: "Open", count: statusCounts.open },
+    { value: "in-progress", label: "In Progress", count: statusCounts['in-progress'] },
+    { value: "resolved", label: "Resolved", count: statusCounts.resolved },
+  ]
   return (
     <div className="space-y-4">
       {/* Status Tabs */}

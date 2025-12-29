@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   Dialog,
   DialogContent,
@@ -19,6 +19,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
 import { Loader2, AlertCircle, Circle, Sparkles } from "lucide-react"
+import { useAuth } from "@/lib/auth-context"
+import { getUsers } from "@/lib/firebase/tickets"
+import { useTicketStore } from "@/lib/stores/ticketStore"
+import { useToast } from "@/hooks/use-toast"
 
 interface CreateTicketModalProps {
   open: boolean
@@ -27,19 +31,32 @@ interface CreateTicketModalProps {
 
 export function CreateTicketModal({ open, onOpenChange }: CreateTicketModalProps) {
   const [isLoading, setIsLoading] = useState(false)
+  const [users, setUsers] = useState<Array<{ uid: string; email: string; displayName?: string }>>([])
+  const [loadingUsers, setLoadingUsers] = useState(false)
+  const { user } = useAuth()
+  const { toast } = useToast()
+  const { createTicket } = useTicketStore()
+  
   const [formData, setFormData] = useState({
     customer: "",
     subject: "",
     description: "",
-    priority: "medium",
+    priority: "medium" as 'low' | 'medium' | 'high' | 'urgent',
     category: "",
     assignToMe: false,
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
-  const [aiSuggestion, setAiSuggestion] = useState({
-    category: "Technical Support",
-    confidence: 87,
-  })
+  
+  // Load users when modal opens
+  useEffect(() => {
+    if (open) {
+      setLoadingUsers(true)
+      getUsers().then(usersList => {
+        setUsers(usersList)
+        setLoadingUsers(false)
+      })
+    }
+  }, [open])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -56,21 +73,51 @@ export function CreateTicketModal({ open, onOpenChange }: CreateTicketModalProps
     }
 
     setIsLoading(true)
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500))
-    setIsLoading(false)
-    onOpenChange(false)
-
-    // Reset form
-    setFormData({
-      customer: "",
-      subject: "",
-      description: "",
-      priority: "medium",
-      category: "",
-      assignToMe: false,
-    })
-    setErrors({})
+    
+    try {
+      const selectedUser = users.find(u => u.uid === formData.customer)
+      if (!selectedUser) {
+        throw new Error('Selected user not found')
+      }
+      
+      await createTicket({
+        subject: formData.subject,
+        description: formData.description,
+        userId: selectedUser.uid,
+        userEmail: selectedUser.email,
+        userName: selectedUser.displayName || selectedUser.email,
+        priority: formData.priority,
+        category: formData.category || undefined,
+        assignedTo: formData.assignToMe ? user?.uid : undefined
+      })
+      
+      toast({
+        title: "Ticket created successfully",
+        description: "The ticket has been added to the system"
+      })
+      
+      onOpenChange(false)
+      
+      // Reset form
+      setFormData({
+        customer: "",
+        subject: "",
+        description: "",
+        priority: "medium",
+        category: "",
+        assignToMe: false,
+      })
+      setErrors({})
+    } catch (error) {
+      console.error('Error creating ticket:', error)
+      toast({
+        title: "Failed to create ticket",
+        description: "Please try again",
+        variant: "destructive"
+      })
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const priorityConfig = {
@@ -98,15 +145,20 @@ export function CreateTicketModal({ open, onOpenChange }: CreateTicketModalProps
             <Label htmlFor="customer">
               Customer <span className="text-destructive">*</span>
             </Label>
-            <Select value={formData.customer} onValueChange={(value) => setFormData({ ...formData, customer: value })}>
+            <Select 
+              value={formData.customer} 
+              onValueChange={(value) => setFormData({ ...formData, customer: value })}
+              disabled={loadingUsers}
+            >
               <SelectTrigger id="customer" className={errors.customer ? "border-destructive" : ""}>
-                <SelectValue placeholder="Select a customer" />
+                <SelectValue placeholder={loadingUsers ? "Loading users..." : "Select a customer"} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="john-doe">John Doe - john.doe@example.com</SelectItem>
-                <SelectItem value="alice-smith">Alice Smith - alice.smith@example.com</SelectItem>
-                <SelectItem value="bob-wilson">Bob Wilson - bob.wilson@example.com</SelectItem>
-                <SelectItem value="emma-davis">Emma Davis - emma.davis@example.com</SelectItem>
+                {users.map(user => (
+                  <SelectItem key={user.uid} value={user.uid}>
+                    {user.displayName || user.email} - {user.email}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
             {errors.customer && <p className="text-xs text-destructive">{errors.customer}</p>}
@@ -140,16 +192,6 @@ export function CreateTicketModal({ open, onOpenChange }: CreateTicketModalProps
               className={`min-h-[120px] ${errors.description ? "border-destructive" : ""}`}
             />
             {errors.description && <p className="text-xs text-destructive">{errors.description}</p>}
-
-            {/* AI Category Suggestion */}
-            {formData.description.length > 20 && (
-              <div className="flex items-center gap-2 rounded-md border border-[oklch(0.97_0.04_276.98)] bg-[oklch(0.97_0.04_276.98)] p-3">
-                <Sparkles className="h-4 w-4 text-[oklch(0.55_0.18_276.98)]" />
-                <span className="text-xs text-foreground">AI suggests category:</span>
-                <Badge className="ai-badge">{aiSuggestion.category}</Badge>
-                <span className="text-xs text-muted-foreground">({aiSuggestion.confidence}% confidence)</span>
-              </div>
-            )}
           </div>
 
           {/* Priority and Category Row */}
@@ -161,7 +203,7 @@ export function CreateTicketModal({ open, onOpenChange }: CreateTicketModalProps
               </Label>
               <Select
                 value={formData.priority}
-                onValueChange={(value) => setFormData({ ...formData, priority: value })}
+                onValueChange={(value) => setFormData({ ...formData, priority: value as 'low' | 'medium' | 'high' | 'urgent' })}
               >
                 <SelectTrigger id="priority">
                   <SelectValue />

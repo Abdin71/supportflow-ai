@@ -18,23 +18,34 @@ service cloud.firestore {
       return isAuthenticated() && getUserRole(request.auth.uid) == 'admin';
     }
     
+    function isAgent() {
+      return isAuthenticated() && getUserRole(request.auth.uid) in ['agent', 'admin', 'manager'];
+    }
+    
     function isOwner(userId) {
       return isAuthenticated() && request.auth.uid == userId;
     }
     
+    // Check if user exists in users collection (for validating ticket userId)
+    function userExists(userId) {
+      return userId == null || exists(/databases/$(database)/documents/users/$(userId));
+    }
+    
     // Validate ticket data structure
     function isValidTicketData(data) {
-      return data.keys().hasAll(['subject', 'description', 'userId', 'status']) &&
+      return data.keys().hasAll(['subject', 'description', 'status']) &&
              data.subject is string && data.subject.size() >= 3 && data.subject.size() <= 200 &&
              data.description is string && data.description.size() >= 10 && data.description.size() <= 5000 &&
-             data.status in ['open', 'in-progress', 'resolved', 'closed'] &&
-             data.userId is string;
+             data.status in ['open', 'in-progress', 'pending', 'resolved', 'closed'] &&
+             // userId can be string or null (for anonymous tickets)
+             (data.userId is string || data.userId == null);
     }
     
     // Validate status transitions
     function isValidStatusTransition(oldStatus, newStatus) {
-      return (oldStatus == 'open' && newStatus in ['in-progress', 'resolved', 'closed']) ||
-             (oldStatus == 'in-progress' && newStatus in ['open', 'resolved', 'closed']) ||
+      return (oldStatus == 'open' && newStatus in ['in-progress', 'pending', 'resolved', 'closed']) ||
+             (oldStatus == 'in-progress' && newStatus in ['open', 'pending', 'resolved', 'closed']) ||
+             (oldStatus == 'pending' && newStatus in ['open', 'in-progress', 'resolved', 'closed']) ||
              (oldStatus == 'resolved' && newStatus in ['open', 'in-progress', 'closed']) ||
              (oldStatus == 'closed' && newStatus in ['open']);
     }
@@ -57,8 +68,8 @@ service cloud.firestore {
     // Check if user can update specific ticket fields
     function canUpdateTicketFields(data) {
       let allowedFields = isAdmin() 
-        ? ['status', 'priority', 'category', 'tags', 'assignedAgentId', 'updatedAt', 'hasUnreadMessages']
-        : ['status', 'updatedAt', 'hasUnreadMessages'];
+        ? ['status', 'priority', 'category', 'tags', 'assignedTo', 'updatedAt', 'hasUnreadMessages', 'messageCount']
+        : ['status', 'updatedAt', 'hasUnreadMessages', 'assignedTo', 'messageCount'];
       
       return data.diff(resource.data).affectedKeys().hasOnly(allowedFields);
     }
@@ -92,45 +103,49 @@ service cloud.firestore {
     
     match /tickets/{ticketId} {
       
-      // READ: Users read own tickets, admins read all
+      // READ: Users read own tickets, agents/admins read all
       allow read: if isAuthenticated() && 
-                     (resource.data.userId == request.auth.uid || isAdmin());
+                     (resource.data.userId == request.auth.uid || isAgent());
       
-      // CREATE: Authenticated users can create tickets
+      // CREATE: Two scenarios supported
       allow create: if isAuthenticated() &&
-                       request.resource.data.userId == request.auth.uid &&
                        isValidTicketData(request.resource.data) &&
-                       // Ensure proper initial values
-                       request.resource.data.status == 'open' &&
                        request.resource.data.createdAt == request.time &&
                        request.resource.data.updatedAt == request.time &&
-                       request.resource.data.messageCount == 0 &&
-                       // AI metadata should indicate pending
-                       request.resource.data.aiMetadata.processingStatus == 'pending';
+                       (
+                         // Scenario A: User creates own ticket (must be 'open' status)
+                         (request.resource.data.userId == request.auth.uid &&
+                          getUserRole(request.auth.uid) == 'user' &&
+                          request.resource.data.status == 'open') ||
+                         
+                         // Scenario B: Admin/Agent creates ticket for user
+                         (isAgent() &&
+                          // Validate user exists (or is null for anonymous)
+                          userExists(request.resource.data.userId) &&
+                          // Admins can set any status, priority, category, tags at creation
+                          request.resource.data.status in ['open', 'in-progress', 'pending', 'resolved', 'closed'])
+                       );
       
-      // UPDATE: Complex business logic for status transitions and assignments
+      // UPDATE: Agents can update tickets, users can update their own (limited fields)
       allow update: if isAuthenticated() &&
-                       // Validate status transitions
+                       // Validate status transitions if status is being changed
                        (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['status']) ||
                         isValidStatusTransition(resource.data.status, request.resource.data.status)) &&
                        // Check permissions based on role
                        (
                          // Users can update their own tickets (limited fields)
                          (resource.data.userId == request.auth.uid &&
-                          canUpdateTicketFields(request.resource.data) &&
                           request.resource.data.diff(resource.data).affectedKeys()
                             .hasOnly(['status', 'updatedAt', 'hasUnreadMessages'])) ||
                          
-                         // Admins can update any ticket (more fields)
-                         (isAdmin() && canUpdateTicketFields(request.resource.data)) ||
+                         // Agents/Admins can update any ticket
+                         (isAgent() && canUpdateTicketFields(request.resource.data)) ||
                          
                          // Assigned agents can update their assigned tickets
-                         (resource.data.assignedAgentId == request.auth.uid &&
-                          getUserRole(request.auth.uid) == 'admin' &&
+                         (resource.data.assignedTo == request.auth.uid &&
+                          isAgent() &&
                           canUpdateTicketFields(request.resource.data))
-                       ) &&
-                       // Ensure updatedAt is always set
-                       request.resource.data.updatedAt == request.time;
+                       );
       
       // DELETE: Only via Cloud Function for audit trail (disabled for direct access)
       allow delete: if false;
@@ -152,11 +167,11 @@ service cloud.firestore {
     
     match /messages/{messageId} {
       
-      // READ: Users can read messages for their tickets, admins can read all
+      // READ: Users can read messages for their tickets, agents can read all
       allow read: if isAuthenticated() &&
-                     (getTicket(resource.data.ticketId).userId == request.auth.uid || isAdmin());
+                     (getTicket(resource.data.ticketId).userId == request.auth.uid || isAgent());
       
-      // CREATE: Users can add messages to their tickets, admins to any ticket
+      // CREATE: Users can add messages to their tickets, agents to any ticket
       allow create: if isAuthenticated() &&
                        isValidMessageData(request.resource.data) &&
                        request.resource.data.userId == request.auth.uid &&
@@ -164,12 +179,12 @@ service cloud.firestore {
                        // Verify role matches user type
                        ((request.resource.data.role == 'user' && 
                          getTicket(request.resource.data.ticketId).userId == request.auth.uid) ||
-                        (request.resource.data.role == 'agent' && isAdmin()));
+                        (request.resource.data.role == 'agent' && isAgent()));
       
-      // UPDATE: Users can edit their own messages within 5 minutes, admins anytime
+      // UPDATE: Users can edit their own messages within 5 minutes, agents anytime
       allow update: if isAuthenticated() &&
                        resource.data.userId == request.auth.uid &&
-                       (request.time < resource.data.createdAt + duration.value(5, 'm') || isAdmin()) &&
+                       (request.time < resource.data.createdAt + duration.value(5, 'm') || isAgent()) &&
                        // Only text and isEdited can change
                        request.resource.data.diff(resource.data).affectedKeys()
                          .hasOnly(['text', 'isEdited', 'editedAt']) &&
