@@ -92,10 +92,12 @@ export function FilterBar({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Categories</SelectItem>
-            <SelectItem value="technical">Technical</SelectItem>
-            <SelectItem value="billing">Billing</SelectItem>
-            <SelectItem value="general">General</SelectItem>
-            <SelectItem value="feature">Feature Request</SelectItem>
+            <SelectItem value="Account & Login">Account & Login</SelectItem>
+            <SelectItem value="Technical Support">Technical Support</SelectItem>
+            <SelectItem value="Billing & Payments">Billing & Payments</SelectItem>
+            <SelectItem value="Feature Request">Feature Request</SelectItem>
+            <SelectItem value="Bug Report">Bug Report</SelectItem>
+            <SelectItem value="General Inquiry">General Inquiry</SelectItem>
           </SelectContent>
         </Select>
 

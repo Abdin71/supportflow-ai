@@ -72,6 +72,27 @@ export async function getTicket(ticketId: string): Promise<Ticket | null> {
 }
 
 /**
+ * Subscribe to a single ticket with real-time updates
+ */
+export function subscribeToSingleTicket(
+  ticketId: string,
+  callback: (ticket: Ticket | null) => void
+): Unsubscribe {
+  const ticketRef = doc(db, 'tickets', ticketId);
+  
+  return onSnapshot(ticketRef, (docSnap) => {
+    if (docSnap.exists()) {
+      callback({ id: docSnap.id, ...docSnap.data() } as Ticket);
+    } else {
+      callback(null);
+    }
+  }, (error) => {
+    console.error('Error subscribing to ticket:', error);
+    callback(null);
+  });
+}
+
+/**
  * Update ticket status
  */
 export async function updateTicketStatus(

@@ -24,28 +24,34 @@ export default function TicketDetailsPage({
   const [isNewTicketOpen, setIsNewTicketOpen] = useState(false)
   const { subscribeToTicket, unsubscribeFromTicket } = useMessageStore()
 
-  // Load ticket and subscribe to messages
+  // Subscribe to ticket changes and messages
   useEffect(() => {
-    const loadTicket = async () => {
+    let unsubscribeTicket: (() => void) | null = null
+
+    const setupSubscription = async () => {
       try {
-        const ticketData = await getTicket(id)
-        setTicket(ticketData)
-        setLoading(false)
+        // Import subscribeToSingleTicket dynamically
+        const { subscribeToSingleTicket } = await import('@/lib/firebase/tickets')
         
+        // Subscribe to ticket updates
+        unsubscribeTicket = subscribeToSingleTicket(id, (ticketData) => {
+          setTicket(ticketData)
+          setLoading(false)
+        })
+
         // Mark as read
-        if (ticketData) {
-          await markTicketAsRead(id)
-        }
+        await markTicketAsRead(id)
       } catch (error) {
-        console.error('Error loading ticket:', error)
+        console.error('Error setting up ticket subscription:', error)
         setLoading(false)
       }
     }
     
-    loadTicket()
+    setupSubscription()
     subscribeToTicket(id)
     
     return () => {
+      if (unsubscribeTicket) unsubscribeTicket()
       unsubscribeFromTicket(id)
     }
   }, [id, subscribeToTicket, unsubscribeFromTicket])

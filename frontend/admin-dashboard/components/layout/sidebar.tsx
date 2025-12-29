@@ -1,35 +1,47 @@
 "use client"
 
+import { useMemo } from "react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { LayoutDashboard, Inbox, UserCheck, Settings } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-
-const navigation = [
-  {
-    name: "Dashboard Overview",
-    href: "/",
-    icon: LayoutDashboard,
-    badge: null,
-  },
-  {
-    name: "All Tickets",
-    href: "/tickets",
-    icon: Inbox,
-    badge: 24,
-  },
-  {
-    name: "Assigned to Me",
-    href: "/assigned",
-    icon: UserCheck,
-    badge: 8,
-  },
-]
+import { useTicketStore } from "@/lib/stores/ticketStore"
+import { useAuth } from "@/lib/auth-context"
 
 export function Sidebar() {
   const pathname = usePathname()
+  const { tickets } = useTicketStore()
+  const { user } = useAuth()
+
+  // Calculate real counts
+  const counts = useMemo(() => {
+    const allCount = tickets.length
+    const assignedCount = tickets.filter(t => t.assignedTo === user?.uid).length
+    return { allCount, assignedCount }
+  }, [tickets, user?.uid])
+
+  const navigation = [
+    {
+      name: "Dashboard Overview",
+      href: "/",
+      icon: LayoutDashboard,
+      badge: null,
+    },
+    {
+      name: "All Tickets",
+      href: "/tickets",
+      icon: Inbox,
+      badge: counts.allCount,
+    },
+    {
+      name: "Assigned to Me",
+      href: "/assigned",
+      icon: UserCheck,
+      badge: counts.assignedCount,
+    },
+  ]
 
   return (
     <aside className="fixed left-0 top-0 z-40 h-screen w-64 border-r border-border bg-background">
