@@ -5,7 +5,6 @@ import { DashboardLayout } from "@/components/layout/dashboard-layout"
 import { ContentHeader } from "@/components/layout/content-header"
 import { TicketHeader } from "@/components/ticket-details/ticket-header"
 import { ConversationThread } from "@/components/ticket-details/conversation-thread"
-import { ReplyForm } from "@/components/ticket-details/reply-form"
 import { TicketInfo } from "@/components/ticket-details/ticket-info"
 import { Card, CardContent } from "@/components/ui/card"
 import { CreateTicketModal } from "@/components/modals/create-ticket-modal"
@@ -89,14 +88,13 @@ export default function TicketDetailsPage({
 
           {/* Split Layout */}
           <div className="grid gap-6 lg:grid-cols-[1fr_350px]">
-            {/* Left Panel - Conversation */}
-            <div className="space-y-6">
+            {/* Left Panel - Conversation & Reply */}
+            <div>
               <Card>
                 <CardContent className="p-6">
                   <ConversationThread ticketId={id} />
                 </CardContent>
               </Card>
-              <ReplyForm ticketId={id} />
             </div>
 
             {/* Right Panel - Ticket Info */}
