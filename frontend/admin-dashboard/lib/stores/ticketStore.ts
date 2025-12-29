@@ -24,6 +24,9 @@ interface TicketState {
   // Subscription
   unsubscribe: Unsubscribe | null;
   
+  // Computed
+  getFilteredAndSortedTickets: () => Ticket[];
+  
   // Actions
   initialize: () => void;
   cleanup: () => void;
@@ -54,6 +57,54 @@ export const useTicketStore = create<TicketState>((set, get) => ({
   filters: { status: 'all' },
   sortBy: 'newest',
   unsubscribe: null,
+
+  // Computed: Get filtered and sorted tickets
+  getFilteredAndSortedTickets: () => {
+    const { tickets, filters, sortBy } = get();
+    
+    // Apply client-side filters (category, priority, etc.)
+    let filtered = tickets;
+    
+    // Filter by category (not handled by Firestore query)
+    if (filters.category) {
+      filtered = filtered.filter(ticket => 
+        ticket.category?.toLowerCase() === filters.category?.toLowerCase()
+      );
+    }
+    
+    // Filter by priority if needed
+    if (filters.priority) {
+      filtered = filtered.filter(ticket => ticket.priority === filters.priority);
+    }
+    
+    // Apply sorting
+    const sorted = [...filtered].sort((a, b) => {
+      switch (sortBy) {
+        case 'newest': {
+          const timeA = (a.createdAt as any)?.toDate ? (a.createdAt as any).toDate().getTime() : new Date(a.createdAt as any).getTime();
+          const timeB = (b.createdAt as any)?.toDate ? (b.createdAt as any).toDate().getTime() : new Date(b.createdAt as any).getTime();
+          return timeB - timeA;
+        }
+        case 'oldest': {
+          const timeA = (a.createdAt as any)?.toDate ? (a.createdAt as any).toDate().getTime() : new Date(a.createdAt as any).getTime();
+          const timeB = (b.createdAt as any)?.toDate ? (b.createdAt as any).toDate().getTime() : new Date(b.createdAt as any).getTime();
+          return timeA - timeB;
+        }
+        case 'priority': {
+          const priorityOrder: Record<string, number> = { urgent: 0, high: 1, medium: 2, low: 3 };
+          return (priorityOrder[a.priority || 'medium'] || 2) - (priorityOrder[b.priority || 'medium'] || 2);
+        }
+        case 'status': {
+          const statusOrder = { open: 0, 'in-progress': 1, pending: 2, resolved: 3, closed: 4 };
+          return (statusOrder[a.status] || 0) - (statusOrder[b.status] || 0);
+        }
+        default:
+          return 0;
+      }
+    });
+    
+    return sorted;
+  },
 
   // Initialize real-time subscription
   initialize: () => {

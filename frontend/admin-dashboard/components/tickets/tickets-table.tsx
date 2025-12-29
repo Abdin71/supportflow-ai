@@ -68,10 +68,13 @@ const priorityConfig = {
 
 export function TicketsTable({ searchQuery = "" }: TicketsTableProps) {
   const [selectedTickets, setSelectedTickets] = useState<string[]>([])
-  const { tickets, loading, updateStatus } = useTicketStore()
+  const { loading, updateStatus, getFilteredAndSortedTickets } = useTicketStore()
   const { user } = useAuth()
   
-  // Filter and search tickets
+  // Get pre-filtered and sorted tickets from store
+  const tickets = getFilteredAndSortedTickets()
+  
+  // Apply search filter on top of store filters
   const filteredTickets = useMemo(() => {
     if (!searchQuery) return tickets
     
@@ -117,7 +120,8 @@ export function TicketsTable({ searchQuery = "" }: TicketsTableProps) {
   if (loading && tickets.length === 0) {
     return (
       <Card>
-        <CardContent className="p-12 text-center text-muted-foreground">
+        <CardContent className="p-12 text-center text-muted-foreground"
+>
           Loading tickets...
         </CardContent>
       </Card>

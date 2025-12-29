@@ -17,18 +17,29 @@ export default function AssignedTicketsPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [isNewTicketOpen, setIsNewTicketOpen] = useState(false)
   const { user } = useAuth()
-  const { setFilters } = useTicketStore()
+  const { initialize, cleanup, setFilters, setSortBy: setStoreSortBy } = useTicketStore()
 
-  // Filter to show only tickets assigned to current user
+  // Initialize store on mount
+  useEffect(() => {
+    initialize()
+    return () => cleanup()
+  }, [initialize, cleanup])
+
+  // Filter to show only tickets assigned to current user + status + category
   useEffect(() => {
     if (user?.uid) {
-      setFilters({ assignedTo: user.uid })
+      setFilters({ 
+        assignedTo: user.uid,
+        status: activeStatus,
+        category: category !== 'all' ? category : undefined
+      })
     }
-    return () => {
-      // Reset filters when leaving page
-      setFilters({})
-    }
-  }, [user?.uid, setFilters])
+  }, [user?.uid, activeStatus, category, setFilters])
+  
+  // Update sort
+  useEffect(() => {
+    setStoreSortBy(sortBy as any)
+  }, [sortBy, setStoreSortBy])
 
   return (
     <ProtectedRoute>
@@ -54,7 +65,7 @@ export default function AssignedTicketsPage() {
           />
 
           {/* Tickets Table - filtered to show only assigned tickets */}
-          <TicketsTable />
+          <TicketsTable searchQuery={searchQuery} />
         </div>
 
         <CreateTicketModal open={isNewTicketOpen} onOpenChange={setIsNewTicketOpen} />

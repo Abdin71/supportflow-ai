@@ -26,7 +26,10 @@ export default function TicketsPage() {
   
   // Update filters when status or category changes
   useEffect(() => {
-    setFilters({ status: activeStatus, category: category !== 'all' ? category : undefined })
+    setFilters({ 
+      status: activeStatus,
+      category: category !== 'all' ? category : undefined
+    })
   }, [activeStatus, category, setFilters])
   
   // Update sort
